@@ -1,31 +1,33 @@
-FROM alpine:3.6
+FROM alpine:3.8
 
-ENV SERVER_ADDR     0.0.0.0
-ENV SERVER_PORT     51348
-ENV PASSWORD        psw
-ENV METHOD          aes-128-ctr
-ENV PROTOCOL        auth_aes128_md5
-ENV PROTOCOLPARAM   32
-ENV OBFS            tls1.2_ticket_auth_compatible
-ENV TIMEOUT         300
-ENV DNS_ADDR        8.8.8.8
-ENV DNS_ADDR_2      8.8.4.4
+RUN  apk --no-cache add \
+                        curl \
+                        python3-dev \
+                        libsodium-dev \
+                        openssl-dev \
+                        udns-dev \
+                        mbedtls-dev \
+                        pcre-dev \
+                        libev-dev \
+                        libtool \
+                        libffi-dev            && \
+     apk --no-cache add --virtual .build-deps \
+                        git \
+                        tar \
+                        make \
+                        py3-pip \
+                        autoconf \
+                        automake \
+                        build-base \
+                        linux-headers         && \
+     ln -s /usr/bin/python3 /usr/bin/python   && \
+     ln -s /usr/bin/pip3    /usr/bin/pip      && \
+     git clone https://github.com/ssrpanel/shadowsocksr.git "/root/shadowsocks" --depth 1 && \
+     cd  /root/shadowsocks                    && \
+     ./setup_cymysql.sh                       && \
+     rm -rf ~/.cache && touch /etc/hosts.deny && \
+     apk del --purge .build-deps
 
-ARG BRANCH=manyuser
-ARG WORK=~
+WORKDIR /root/shadowsocks
 
-
-RUN apk --no-cache add python \
-    libsodium \
-    wget
-
-
-RUN mkdir -p $WORK && \
-    wget -qO- --no-check-certificate https://github.com/shadowsocksr/shadowsocksr/archive/$BRANCH.tar.gz | tar -xzf - -C $WORK
-
-
-WORKDIR $WORK/shadowsocksr-$BRANCH/shadowsocks
-
-
-EXPOSE $SERVER_PORT
-CMD python server.py -p $SERVER_PORT -k $PASSWORD -m $METHOD -O $PROTOCOL -o $OBFS -G $PROTOCOLPARAM
+CMD python /root/shadowsocks/server.py
